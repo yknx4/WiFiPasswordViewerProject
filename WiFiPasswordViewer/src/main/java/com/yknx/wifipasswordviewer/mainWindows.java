@@ -107,6 +107,7 @@ public class mainWindows extends ActionBarActivity
                 menu.findItem(R.id.action_copytoclipboard).setVisible(false);
             }else {menu.findItem(R.id.action_copytoclipboard).setVisible(true);}
 
+
             return true;
         }
         return super.onCreateOptionsMenu(menu);
