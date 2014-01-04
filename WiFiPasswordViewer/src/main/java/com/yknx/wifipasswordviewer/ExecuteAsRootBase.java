@@ -1,3 +1,5 @@
+package com.yknx.wifipasswordviewer;
+
 import java.io.DataOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -126,4 +128,5 @@ public abstract class ExecuteAsRootBase
         return retval;
     }
     protected abstract ArrayList<String> getCommandsToExecute();
+
 }
