@@ -8,7 +8,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
 
-        android:text="Network: " />
+        android:text="Network: "
+        android:textSize="@dimen/abc_action_bar_title_text_size"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/networkPass"
@@ -18,7 +20,8 @@
 
         android:text="Key: "
         android:layout_below="@+id/networkName"
-        android:layout_alignParentLeft="true" />
+        android:layout_alignParentLeft="true"
+        android:typeface="monospace" />
     <TextView
         android:id="@+id/networkSecurity"
         android:layout_width="wrap_content"
@@ -27,6 +30,8 @@
 
         android:text="Security: "
         android:layout_below="@+id/networkPass"
-        android:layout_alignParentLeft="true" />
+        android:layout_alignParentLeft="true"
+        android:textSize="@dimen/abc_action_bar_subtitle_text_size"
+        android:textStyle="italic" />
 
 </RelativeLayout>

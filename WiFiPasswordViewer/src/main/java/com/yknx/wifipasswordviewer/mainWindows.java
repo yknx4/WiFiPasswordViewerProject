@@ -1,12 +1,16 @@
 package com.yknx.wifipasswordviewer;
 
 import android.app.Activity;
+import android.app.Instrumentation;
+import android.content.ClipData;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.content.ClipboardManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -14,6 +18,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,7 +44,7 @@ public class mainWindows extends ActionBarActivity
 
     private wifiNetworkAdapter mWifiAdapter;
 
-    private ArrayList<wifiNetwork> networks;
+    private static ArrayList<wifiNetwork> networks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,28 +76,64 @@ public class mainWindows extends ActionBarActivity
                 runAsRoot(cmds);
                 parseOutput();
                 mWifiAdapter = new wifiNetworkAdapter(this,networks);
-                /*FIX HERE*/
-                setContentView(R.layout.fragment_wifikeys);
-                ListView lvNets = (ListView) findViewById(R.id.listView_wifikeys);
-                if(null != lvNets)
-                lvNets.setAdapter(mWifiAdapter);
-                /*!FIX HERE*/
+                /*FIX HERE
+                setContentView(R.id.container);
+                ((ListView) findViewById(R.id.listView_wifikeys)).setAdapter(mWifiAdapter);
+                setContentView(R.layout.activity_main);
+                !FIX HERE*/
 
             } catch (Exception e) {
                 Log.w("ROOT", "Can't get wifi networks", e);
                 Toast.makeText(this.getBaseContext(),"Something failed loading wifi networks.\nSend Logcat to developer.",Toast.LENGTH_SHORT).show();
                 moveTaskToBack(true);
             }
+
         }
+
+
     }
 
+    private EditText et;
     private void parseOutput() {
-        networks.add(new wifiNetwork("Almenos1","test",wifiNetwork.security.wep));
+        //networks.add(new wifiNetwork("Almenos1","test",wifiNetwork.security.wep));
         result = result.replace('$',' ');
         result = result.replace("network=","$");
-        String[] nets = result.split("$");
+        String[] nets = result.split("\\$");
+        wifiNetwork mWifi;
         for(String cNet : nets){
-            networks.add(new wifiNetwork(cNet,"test",wifiNetwork.security.wep));
+            mWifi = null;
+            int positionS = cNet.indexOf("ssid=")+5;
+            //int position_final = cNet.indexOf("\"",position);
+            String ssid = cNet.substring(positionS);
+            try{
+                ssid=ssid.substring(1,ssid.indexOf("\"",1));
+            }catch (Exception e){}
+
+            if(cNet.contains("wep_key0=")){
+
+
+               int position = cNet.indexOf("wep_key0=")+9;
+                //int position_final = cNet.indexOf("\"",position);
+                String key = cNet.substring(position);
+                if(key.charAt(0)=='"'){
+                    int posicionf = key.indexOf("\"",1);
+                    key = key.substring(1,posicionf);
+                }else{
+                    int posicionf = key.indexOf("\n",1);
+                    key = key.substring(0,posicionf);
+                }
+                mWifi = new wifiNetwork(ssid,key, wifiNetwork.security.wep);
+            }
+            else if (cNet.contains("psk=")){
+                int position = cNet.indexOf("psk=")+4;
+                //int position_final = cNet.indexOf("\"",position);
+                String key = cNet.substring(position);
+                int posicionf = key.indexOf("\"",1);
+                key = key.substring(1,posicionf);
+                mWifi = new wifiNetwork(ssid,key, wifiNetwork.security.wpa);
+            }
+
+            if(null!=mWifi) networks.add(mWifi);
         }
     }
 
@@ -105,7 +147,7 @@ public class mainWindows extends ActionBarActivity
         switch (position){
             case 0:
                 fragmentManager.beginTransaction()
-                        .replace(R.id.container, WifiKeysFragment.newInstance())
+                        .replace(R.id.container, WifiKeysFragment.newInstance(mWifiAdapter,this))
                         .commit();
                 break;
             case 2:
@@ -125,9 +167,11 @@ public class mainWindows extends ActionBarActivity
     }
 
     public void onSectionAttached(int number) {
+
         switch (number) {
             case 1:
                 mTitle = getString(R.string.title_section1);
+
                 break;
             case 2:
                 mTitle = getString(R.string.title_section2);
@@ -159,7 +203,7 @@ public class mainWindows extends ActionBarActivity
             restoreActionBar();
             if(currentFragment!=0){
                 menu.findItem(R.id.action_copytoclipboard).setVisible(false);
-            }else {menu.findItem(R.id.action_copytoclipboard).setVisible(true);}
+            }else {menu.findItem(R.id.action_copytoclipboard).setVisible(false);}
 
 
             return true;
@@ -178,6 +222,7 @@ public class mainWindows extends ActionBarActivity
         }
         return super.onOptionsItemSelected(item);
     }
+
 
     /**
      * A placeholder fragment containing a simple view.
@@ -223,7 +268,7 @@ public class mainWindows extends ActionBarActivity
     /**
      * A fragment containing Wifi Keys.
      */
-    public static class WifiKeysFragment extends Fragment {
+    public static class WifiKeysFragment extends Fragment implements  AdapterView.OnItemClickListener {
         /**
          * The fragment argument representing the section number for this
          * fragment.
@@ -234,23 +279,30 @@ public class mainWindows extends ActionBarActivity
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static WifiKeysFragment newInstance() {
-            WifiKeysFragment fragment = new WifiKeysFragment();
+        public static WifiKeysFragment newInstance(wifiNetworkAdapter inputWifi, Activity act2) {
+            WifiKeysFragment fragment = new WifiKeysFragment(inputWifi);
             Bundle args = new Bundle();
             //args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             fragment.setArguments(args);
             return fragment;
         }
+       // private static Activity act;
+        public WifiKeysFragment(wifiNetworkAdapter wifiInput) {
 
-        public WifiKeysFragment() {
+            mWifi=wifiInput;
         }
 
+        private wifiNetworkAdapter mWifi;
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_wifikeys, container, false);
            // TextView textView = (TextView) rootView.findViewById(R.id.section_label);
           //  textView.setText(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)));
+
+            ((ListView) rootView.findViewById(R.id.listView_wifikeys)).setAdapter(mWifi);
+            ((ListView) rootView.findViewById(R.id.listView_wifikeys)).setOnItemClickListener(this);
+            rootView.refreshDrawableState();
             return rootView;
         }
 
@@ -258,7 +310,34 @@ public class mainWindows extends ActionBarActivity
         public void onAttach(Activity activity) {
             super.onAttach(activity);
             ((mainWindows) activity).onSectionAttached(1);
+
+
         }
+
+        @Override
+        public void onItemClick(AdapterView<?> adapter, View view, int position,
+                                long ID) {
+            // Al hacer click sobre uno de los items del ListView mostramos los
+            // datos en los TextView.
+            int currentapiVersion = android.os.Build.VERSION.SDK_INT;
+            if (currentapiVersion >= Build.VERSION_CODES.HONEYCOMB){
+                // Do something for froyo and above versions
+                String netName = networks.get(position).getName();
+                String netKey = networks.get(position).getKey();
+                Toast.makeText(view.getContext(),netName+" key has been copied to clipboard.",Toast.LENGTH_SHORT).show();
+                ClipboardManager clipboard = (ClipboardManager) getActivity().getSystemService(CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText(netName, netKey);
+                clipboard.setPrimaryClip(clip);
+            } else{
+                // do something for phones running an SDK before froyo
+                Toast.makeText(view.getContext(),"You need at least Honeycomb to copy key automatically to clipboard.",Toast.LENGTH_SHORT).show();
+            }
+
+
+
+        }
+
+
     }
     public static class AboutFragment extends Fragment {
         /**

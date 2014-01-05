@@ -36,18 +36,18 @@ public class wifiNetworkAdapter extends ArrayAdapter {
         TextView nombre = (TextView) item.findViewById(R.id.networkName);
         nombre.setText(data.get(position).getName());
         TextView clave = (TextView) item.findViewById(R.id.networkPass);
-        clave.setText(data.get(position).getKey());
+        clave.setText("Key:"+data.get(position).getKey());
         TextView security = (TextView) item.findViewById(R.id.networkSecurity);
         switch (data.get(position).getType()){
 
             case wep:
-                security.setText("WEP");
+                security.setText("Security: WEP");
                 break;
             case wpa:
-                security.setText("WPA");
+                security.setText("Security: WPA");
                 break;
             case open:
-                security.setText("Open");
+                security.setText("Security: Open");
                 break;
         }
 
